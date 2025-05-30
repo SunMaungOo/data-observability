@@ -8,11 +8,14 @@ from functools import reduce
 from math import isnan
 from numbers import Number
 
-def _default(obj):
+def _default(self, obj):
     return getattr(obj.__class__, "to_json", _default.default)(obj)
+
 
 _default.default = json.JSONEncoder().default
 json.JSONEncoder.default = _default
+pd.options.mode.chained_assignment = None
+
 
 class Application:
     """

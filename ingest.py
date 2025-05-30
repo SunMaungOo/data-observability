@@ -1,4 +1,5 @@
 import pandas as pd
+import json
 from model import Application,ApplicationRepository,DataSource,Schema,DataMetrics
 
 def main():
@@ -21,6 +22,8 @@ def main():
     
     app_tech_metric = DataMetrics(metrics=DataMetrics.extract_metrics_from_dataframe(df=app_tech),\
                                   schema=app_tech_schema)
+    
+    print(json.dumps(app_tech_ds))
           
     buzz_feed = pd.read_csv(
         "data/Buzzfeed.csv",
