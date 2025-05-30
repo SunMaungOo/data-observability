@@ -44,8 +44,7 @@ def main():
 
     (monthly_assets_ds,monthly_assets_schema,monthly_assets_metric)  = observations_for_df(df_name="data/monthly_assets.csv",\
                         df_format="csv",\
-                        df=monthly_assets,\
-                        is_print_observation=False)  
+                        df=monthly_assets)  
         
     lineage = OutputDataLineage(schema=monthly_assets_schema,\
                       input_schemas_mapping=OutputDataLineage.generate_direct_mapping(output_schema=monthly_assets_schema,\
