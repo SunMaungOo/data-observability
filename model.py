@@ -17,6 +17,27 @@ json.JSONEncoder.default = _default
 pd.options.mode.chained_assignment = None
 
 
+def observations_for_df(df_name: str, df_format: str, df: pd.DataFrame):
+
+    data_source = DataSource(location=df_name,format=df_format)
+
+    print(json.dumps(data_source))
+
+    schema = Schema(fields=Schema.extract_fields_from_dataframe(df=df),\
+                    data_source=data_source)
+    
+    print(json.dumps(schema))
+
+    metric = DataMetrics(metrics=DataMetrics.extract_metrics_from_dataframe(df=df),\
+                         schema=schema)
+    
+    print(json.dumps(metric))
+
+
+
+
+
+
 class Application:
     """
     Application in static space
@@ -134,7 +155,7 @@ class DataMetrics:
 
         self.id = md5(id_content.encode("utf-8")).hexdigest()
     
-    def to_join(self):
+    def to_json(self):
         fields = reduce(
             lambda x,y:dict(**x,**y),
             map(
@@ -142,7 +163,11 @@ class DataMetrics:
             ,self.metrics)
         )
 
-        return fields
+        return {
+            "id":self.id,
+            "metrics":fields,
+            "schema":self.schema.id
+        }
     
     @staticmethod
     def extract_metrics_from_dataframe(df:pd.DataFrame)->List[Tuple[str,float]]:
