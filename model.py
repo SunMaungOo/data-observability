@@ -17,26 +17,6 @@ json.JSONEncoder.default = _default
 pd.options.mode.chained_assignment = None
 
 
-def observations_for_df(df_name: str, df_format: str, df: pd.DataFrame):
-
-    data_source = DataSource(location=df_name,format=df_format)
-
-    print(json.dumps(data_source))
-
-    schema = Schema(fields=Schema.extract_fields_from_dataframe(df=df),\
-                    data_source=data_source)
-    
-    print(json.dumps(schema))
-
-    metric = DataMetrics(metrics=DataMetrics.extract_metrics_from_dataframe(df=df),\
-                         schema=schema)
-    
-    print(json.dumps(metric))
-
-
-
-
-
 
 class Application:
     """
@@ -191,3 +171,77 @@ class DataMetrics:
             metrics.update(metric_description)
 
         return list(metrics.items())
+    
+class OutputDataLineage:
+    def __init__(self,schema:Schema,input_schemas_mapping:List[Tuple[Schema,dict]]):
+        self.schema = schema
+        self.input_schemas_mapping = input_schemas_mapping
+
+        id_content = ",".join([schema.id,self.linearzie()])
+
+        self.id = md5(id_content.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def generate_direct_mapping(output_schema: Schema, input_schemas: list[Schema])->List[Tuple[Schema,dict]]:
+
+        input_schemas_mapping = list()
+
+        output_schema_field_names = [field[0] for field in output_schema.fields]
+
+        for schema in input_schemas:
+
+            mapping = dict()
+
+            for field in schema.fields:
+                # if field name is found
+                if field[0] in output_schema_field_names:
+                    mapping[field[0]] = [field[0]]
+            
+            if len(mapping)>0:
+                input_schemas_mapping.append((schema,mapping))
+        
+        return input_schemas_mapping
+
+
+
+    def to_json(self):
+        return {
+            "id":self.id,
+            "schema":self.schema.id,
+            "input_schemas_mapping":self.input_schemas_mapping
+        }
+
+
+    def linearzie(self)->str:
+        linearized = ""
+
+        for schema in self.input_schemas_mapping:
+            for key in schema[1]:
+                linearized += key
+                linearized += ":"
+                linearized += "-".join(schema[1][key]) + ","
+        
+        linearized = linearized[:-1]
+
+        return linearized
+
+def observations_for_df(df_name: str, df_format: str, df: pd.DataFrame,is_print_observation=True)->Tuple[DataSource,Schema,DataMetrics]:
+
+    data_source = DataSource(location=df_name,format=df_format)
+
+    schema = Schema(fields=Schema.extract_fields_from_dataframe(df=df),\
+                    data_source=data_source)
+    
+    metric = DataMetrics(metrics=DataMetrics.extract_metrics_from_dataframe(df=df),\
+                         schema=schema)
+    
+    if is_print_observation:
+        print(json.dumps(data_source))
+        print(json.dumps(schema))
+        print(json.dumps(metric))
+
+
+
+
+
+    return (data_source,schema,metric)
