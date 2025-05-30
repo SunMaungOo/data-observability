@@ -11,7 +11,6 @@ _default.default = json.JSONEncoder().default
 json.JSONEncoder.default = _default
 
 
-
 class Application:
     """
     Application in static space
@@ -61,9 +60,23 @@ class ApplicationRepository:
             "application":self.application.id
         }
 
+class DataSource:
+    def __init__(self,location:str,format:str=None):
+        self.location = location
+        self.format = format
+        id_content = ",".join([location,format])
+
+        self.id = md5(id_content.encode("utf-8")).hexdigest()
+
+    def to_json(self):
+        return {
+            "id":self.id,
+            "location":self.location,
+            "format":self.format
+        }
+
 
 def main():
-
     app_tech = pd.read_csv(
         "data/AppTech.csv",
         parse_dates=["Date"],
