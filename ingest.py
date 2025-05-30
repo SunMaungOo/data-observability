@@ -3,8 +3,10 @@ import os
 import json
 from hashlib import md5
 import git
+from typing import List,Tuple
+from functools import reduce
 
-def _default(self,obj):
+def _default(obj):
     return getattr(obj.__class__, "to_json", _default.default)(obj)
 
 _default.default = json.JSONEncoder().default
@@ -75,6 +77,47 @@ class DataSource:
             "format":self.format
         }
 
+class Schema:
+    def __init__(self,fields:List[Tuple[str,str]],data_source:DataSource):
+        self.fields = fields
+        self.data_source = data_source
+        
+        linearized_fields = ",".join(
+            list(
+                map(lambda x: x[0]+"-"+x[1],
+                    sorted(fields))
+            )
+        )
+
+        id_content = ",".join([linearized_fields,data_source.id])
+
+        self.id = md5(id_content.encode("utf-8")).hexdigest()
+
+    def to_json(self):
+        fields = reduce(
+            lambda x,y: dict(**x,**y),
+            map(
+                lambda f: {f[0]:f[1]},
+                self.fields
+            )
+        )
+        return {
+            "id":self.id,
+            "fields":fields,
+            "data_source":self.data_source.id
+        }
+
+    @staticmethod
+    def extract_fields_from_dataframe(df:pd.DataFrame)->List[Tuple[str,str]]:
+        fields = list(zip(
+            df.columns.values.tolist(),
+            map(
+                lambda x: str(x),
+                df.dtypes.values.tolist()
+            )
+        ))
+
+        return fields
 
 def main():
     app_tech = pd.read_csv(
@@ -83,7 +126,7 @@ def main():
         dtype={
             "Symbol":"category"
         })
-    
+          
     buzz_feed = pd.read_csv(
         "data/Buzzfeed.csv",
         parse_dates=["Date"],
