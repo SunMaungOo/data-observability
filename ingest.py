@@ -5,13 +5,14 @@ from hashlib import md5
 import git
 from typing import List,Tuple
 from functools import reduce
+from math import isnan
+from numbers import Number
 
 def _default(obj):
     return getattr(obj.__class__, "to_json", _default.default)(obj)
 
 _default.default = json.JSONEncoder().default
 json.JSONEncoder.default = _default
-
 
 class Application:
     """
@@ -118,6 +119,50 @@ class Schema:
         ))
 
         return fields
+    
+class DataMetrics:
+
+    def __init__(self,metrics:List[Tuple[str,float]],schema:Schema):
+
+        self.metrics = metrics
+        self.schema = schema
+
+        id_content = ",".join([schema.id.encode("utf-8")])
+
+        self.id = md5(id_content).hexdigest()
+    
+    def to_join(self):
+        fields = reduce(
+            lambda x,y:dict(**x,**y),
+            map(
+                lambda f: {f[0]:f[1]}
+            ,self.metrics)
+        )
+
+        return fields
+    
+    @staticmethod
+    def extract_metrics_from_dataframe(df:pd.DataFrame)->List[Tuple[str,float]]:
+        
+        describe_value = df.describe(include="all")
+        
+        metrics = {}
+
+        empty_nan_filter = lambda x: isinstance(x[1],Number) and not isnan(x[1])
+
+        for field in describe_value.columns[1:]:
+
+            field_dict = describe_value[field].to_dict()
+
+            mapped_items = map(lambda x: (field + "." + x[0], x[1]), field_dict.items())
+
+            filtered_items = filter(empty_nan_filter, mapped_items)
+
+            metric_description = dict(filtered_items)
+
+            metrics.update(metric_description)
+
+        return list(metrics.items())
 
 def main():
     app_tech = pd.read_csv(
@@ -133,7 +178,7 @@ def main():
         dtype={
             "Symbol":"category"
         })
-    
+        
     monthly_assets = pd.concat([app_tech,buzz_feed]).astype(
         {
             "Symbol":"category"
