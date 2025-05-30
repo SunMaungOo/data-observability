@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 def main():
 
     all_assets = pd.read_csv(
