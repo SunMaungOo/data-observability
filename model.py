@@ -217,13 +217,13 @@ class OutputDataLineage:
         self.id = md5(id_content.encode("utf-8")).hexdigest()
 
     @staticmethod
-    def generate_direct_mapping(output_schema: Schema, input_schemas: list[Schema])->List[Tuple[Schema,dict]]:
+    def generate_direct_mapping(output_schema: Schema, input_schemas: List[Tuple[Schema,dict]])->List[Tuple[Schema,dict]]:
 
         input_schemas_mapping = list()
 
         output_schema_field_names = [field[0] for field in output_schema.fields]
 
-        for schema in input_schemas:
+        for (schema,extra_mapping) in input_schemas:
 
             mapping = dict()
 
@@ -231,6 +231,8 @@ class OutputDataLineage:
                 # if field name is found
                 if field[0] in output_schema_field_names:
                     mapping[field[0]] = [field[0]]
+            
+            mapping.update(extra_mapping)
             
             if len(mapping)>0:
                 input_schemas_mapping.append((schema,mapping))
